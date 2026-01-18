@@ -2,7 +2,8 @@ import { View } from '@/components/Themed';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Button, Easing, StyleSheet, Text } from 'react-native';
+import { Animated, Easing, StyleSheet, Text } from 'react-native';
+import { Button } from 'react-native-elements';
 import { Rect, Svg } from 'react-native-svg';
 
 // 虚线边框动画参数
@@ -60,6 +61,9 @@ export default function TabOneScreen() {
       : ScreenOrientation.OrientationLock.LANDSCAPE;
     await ScreenOrientation.lockAsync(nextLock);
   };
+  const onClickRefresh = () => {
+    setTime(new Date());
+  };
 
   // 启动定时器更新时间
   useEffect(() => {
@@ -106,21 +110,38 @@ export default function TabOneScreen() {
     <View style={styles.container}>
       <StatusBar hidden />
       
-      {/* 动态设置 flexDirection */}
-      <View style={[
-        styles.houerContainer,
-        isLandscape ? styles.houerContainerLandscape : styles.houerContainerPortrait,
-      ]}>
-        <View style={styles.houer}>
-          <Text style={styles.houerText}>{hours}</Text>
-          <MovingDashedBorder />
+      <View style={styles.houerContainer}>
+        {/* 动态设置 flexDirection */}
+        <View style={[
+          styles.houerRow,
+          isLandscape ? styles.houerRowLandscape : styles.houerRowPortrait,
+        ]}>
+          <View style={styles.houer}>
+            <Text style={styles.houerText}>{hours}</Text>
+            <MovingDashedBorder />
+          </View>
+          <View style={styles.houer}>
+            <Text style={styles.houerText}>{minutes}</Text>
+            <MovingDashedBorder />
+          </View>
         </View>
-        <View style={styles.houer}>
-          <Text style={styles.houerText}>{minutes}</Text>
-          <MovingDashedBorder />
-        </View>
-        <View style={styles.ChangeButtonView} >
-          <Button title="切换方向" onPress={onClickChange} />
+        <View style={styles.buttonsRow}>
+          <Button
+            title="切换"
+            onPress={onClickChange}
+            buttonStyle={styles.buttonCircle}
+            containerStyle={styles.buttonCircleContainer}
+            titleStyle={styles.buttonText}
+            activeOpacity={0.6}
+          />
+          <Button
+            title="刷新"
+            onPress={onClickRefresh}
+            buttonStyle={[styles.buttonCircle, styles.buttonCircleAlt]}
+            containerStyle={styles.buttonCircleContainer}
+            titleStyle={styles.buttonText}
+            activeOpacity={0.6}
+          />
         </View>
       </View>
     </View>
@@ -135,16 +156,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#000', // 可选：深色背景更沉浸
   },
   houerContainer: {
-    // flexDirection 将由内联样式动态覆盖
+    // 盒子布局方向在 houerRow 上动态设置
     display: 'flex',
     width: '60%',
     height: '60%',
     alignItems: 'stretch',
   },
-  houerContainerPortrait: {
+  houerRow: {
+    flex: 1,
+    width: '100%',
+  },
+  houerRowPortrait: {
     flexDirection: 'column',
   },
-  houerContainerLandscape: {
+  houerRowLandscape: {
     flexDirection: 'row',
   },
   houer: {
@@ -161,8 +186,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  ChangeButtonView:{
-    width:100,
-    height:50,
-  }
+  buttonsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 8,
+    justifyContent: 'center',
+  },
+  buttonCircleContainer: {
+    marginHorizontal: 10,
+  },
+  buttonCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#fff',
+    backgroundColor: '#1e2933',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonCircleAlt: {
+    backgroundColor: '#233024',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
