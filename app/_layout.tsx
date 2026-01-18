@@ -1,11 +1,13 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { ThemeProvider as NavigationThemeProvider, DarkTheme } from '@react-navigation/native';
+import { createTheme, ThemeProvider } from '@rneui/themed';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -44,12 +46,41 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const backgroundColor = '#000000';
+  const navigationTheme = useMemo(
+    () => ({
+      ...DarkTheme,
+      colors: {
+        ...DarkTheme.colors,
+        background: backgroundColor,
+        card: backgroundColor,
+        text: Colors.dark.text,
+      },
+    }),
+    []
+  );
+  const theme = useMemo(
+    () =>
+      createTheme({
+        mode: 'dark',
+        darkColors: {
+          primary: Colors.dark.tint,
+          background: backgroundColor,
+          white: Colors.dark.text,
+          black: backgroundColor,
+        },
+      }),
+    []
+  );
 
   return (
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="timer" options={{ headerShown: false }} />
-      </Stack>
+    <ThemeProvider theme={theme}>
+      <NavigationThemeProvider value={navigationTheme}>
+        <Stack screenOptions={{ contentStyle: { backgroundColor } }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="timer" options={{ headerShown: false }} />
+        </Stack>
+      </NavigationThemeProvider>
+    </ThemeProvider>
   );
 }

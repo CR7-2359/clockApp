@@ -17,4 +17,22 @@ export default function Root({ children }: { children: React.ReactNode }) {
   );
 }
 
-const responsiveBackground = ``;
+const responsiveBackground = `
+:root {
+  color-scheme: dark;
+  background-color: #000000;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: inherit;
+}
+
+body {
+  color: #ffffff;
+}
+`;

@@ -3,7 +3,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text } from 'react-native';
-import { Button } from 'react-native-elements';
+import { Button } from '@rneui/themed';
 import { Rect, Svg } from 'react-native-svg';
 
 // 虚线边框动画参数

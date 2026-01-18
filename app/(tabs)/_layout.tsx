@@ -1,58 +1,93 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import React from 'react';
-import { Pressable } from 'react-native';
+import { Tab, TabView, useTheme } from '@rneui/themed';
+import { usePathname, useRouter } from 'expo-router';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { View } from '@/components/Themed';
 
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import IndexScreen from './index';
+import MyScreen from './my';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const { theme } = useTheme();
+  const pathname = usePathname();
+  const tabIndex = pathname.includes('/my') ? 1 : 0;
+
+  const handleChange = (nextIndex: number) => {
+    if (nextIndex === tabIndex) {
+      return;
+    }
+    const nextRoute = nextIndex === 1 ? '/my' : '/';
+    router.replace(nextRoute);
+  };
+
+  const backgroundColor = theme.colors.background;
+  const textColor = theme.mode === 'dark' ? theme.colors.white : theme.colors.black;
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#000', // 设置为黑色
-        tabBarInactiveTintColor: '#837d7dff', 
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-          headerShown: false
-        }}
-      />
-      <Tabs.Screen
-        name="my"
-        options={{
-          title: 'my',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
-    </Tabs>
+    <View style={[styles.container, { backgroundColor }]}>
+      <View style={[styles.tabViewContainer, { backgroundColor }]}>
+        <TabView
+          value={tabIndex}
+          onChange={handleChange}
+          animationType="timing"
+          disableTransition
+          containerStyle={{ backgroundColor }}
+          tabItemContainerStyle={{ backgroundColor }}
+        >
+          <TabView.Item style={[styles.tabViewItem, { backgroundColor }]}>
+            <IndexScreen />
+          </TabView.Item>
+          <TabView.Item style={[styles.tabViewItem, { backgroundColor }]}>
+            <MyScreen />
+          </TabView.Item>
+        </TabView>
+      </View>
+      <Tab
+        value={tabIndex}
+        onChange={handleChange}
+        indicatorStyle={styles.tabIndicator}
+        style={[styles.tabBar, { backgroundColor }]}
+        containerStyle={{ backgroundColor }}
+        buttonStyle={{ backgroundColor }}
+      >
+        <Tab.Item
+          title="首页"
+          titleStyle={[styles.tabTitle, { color: textColor }]}
+          TouchableComponent={TouchableOpacity}
+          activeOpacity={1}
+        />
+        <Tab.Item
+          title="我的"
+          titleStyle={[styles.tabTitle, { color: textColor }]}
+          TouchableComponent={TouchableOpacity}
+          activeOpacity={1}
+        />
+      </Tab>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabBar: {
+  },
+  tabIndicator: {
+    backgroundColor: '#1e2933',
+    height: 2,
+  },
+  tabTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    paddingBottom: 15,
+  },
+  tabViewContainer: {
+    flex: 1,
+  },
+  tabViewItem: {
+    width: '100%',
+    flex: 1,
+  },
+});

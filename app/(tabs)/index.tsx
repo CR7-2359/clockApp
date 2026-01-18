@@ -1,7 +1,8 @@
 import { Text, View } from '@/components/Themed';
+import { Button } from '@rneui/themed';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 export default function TabOneScreen() {
   const [time, onChangeTime] = useState(new Date().toLocaleTimeString())
   setInterval(() => {
@@ -15,6 +16,7 @@ export default function TabOneScreen() {
       <Text style={styles.title}>当前时间{time}</Text>
       <Button 
       title="进入时钟" 
+      color={'blue'}
       onPress={() => router.push('/timer')}
       >
       </Button>
