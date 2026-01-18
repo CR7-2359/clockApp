@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "myDemo",
+    "orientation": "default",
     "slug": "myDemo",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mydemo",
     "userInterfaceStyle": "automatic",

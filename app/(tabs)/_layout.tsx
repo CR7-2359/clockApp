@@ -1,13 +1,12 @@
-import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
+import React from 'react';
 import { Pressable } from 'react-native';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
@@ -21,9 +20,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+        tabBarActiveTintColor: '#000', // 设置为黑色
+        tabBarInactiveTintColor: '#837d7dff', 
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
@@ -45,12 +43,13 @@ export default function TabLayout() {
               </Pressable>
             </Link>
           ),
+          headerShown: false
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="my"
         options={{
-          title: 'Tab Two',
+          title: 'my',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
       />
