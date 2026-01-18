@@ -1,11 +1,18 @@
 import { Tab, TabView, useTheme } from '@rneui/themed';
 import { usePathname, useRouter } from 'expo-router';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { StyleSheet, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
 import { View } from '@/components/Themed';
 
 import IndexScreen from './index';
 import MyScreen from './my';
+
+class TabTouchableOpacity extends React.Component<TouchableOpacityProps> {
+  render() {
+    return <TouchableOpacity {...this.props} />;
+  }
+}
 
 export default function TabLayout() {
   const router = useRouter();
@@ -54,13 +61,13 @@ export default function TabLayout() {
         <Tab.Item
           title="首页"
           titleStyle={[styles.tabTitle, { color: textColor }]}
-          TouchableComponent={TouchableOpacity}
+          TouchableComponent={TabTouchableOpacity}
           activeOpacity={1}
         />
         <Tab.Item
           title="我的"
           titleStyle={[styles.tabTitle, { color: textColor }]}
-          TouchableComponent={TouchableOpacity}
+          TouchableComponent={TabTouchableOpacity}
           activeOpacity={1}
         />
       </Tab>
