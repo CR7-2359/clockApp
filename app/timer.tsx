@@ -1,10 +1,17 @@
 import { View } from '@/components/Themed';
-import { Button } from '@rneui/themed';
 import * as ImagePicker from 'expo-image-picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Alert, Animated as RNAnimated, Easing, StyleSheet, Text, View as RNView } from 'react-native';
+import {
+  Alert,
+  Animated as RNAnimated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View as RNView,
+} from 'react-native';
 import Animated, {
   Easing as ReEasing,
   useAnimatedProps,
@@ -13,6 +20,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Defs, Image as SvgImage, Pattern, Rect, Svg, Text as SvgText } from 'react-native-svg';
+import type { PatternProps } from 'react-native-svg';
+import { BottomSheet } from '@rneui/themed';
 
 // 虚线边框动画参数
 const BORDER_RADIUS = 10;
@@ -75,9 +84,10 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
     );
   }, [rotation]);
 
-  const patternAnimatedProps = useAnimatedProps(() => {
+  const patternAnimatedProps = useAnimatedProps<PatternProps>(() => {
     if (!width || !height) {
-      return { patternTransform: [1, 0, 0, 1, 0, 0] };
+      const matrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
+      return { patternTransform: matrix };
     }
     const angle = (rotation.value * Math.PI) / 180;
     const cos = Math.cos(angle);
@@ -86,9 +96,15 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
     const cy = height / 2;
     const translateX = cx - cx * cos + cy * sin;
     const translateY = cy - cx * sin - cy * cos;
-    return {
-      patternTransform: [cos, sin, -sin, cos, translateX, translateY],
-    };
+    const matrix: [number, number, number, number, number, number] = [
+      cos,
+      sin,
+      -sin,
+      cos,
+      translateX,
+      translateY,
+    ];
+    return { patternTransform: matrix };
   }, [width, height]);
 
   return (
@@ -141,17 +157,20 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
 export default function TabOneScreen() {
   const [time, setTime] = useState(new Date());
   const [imageUri, setImageUri] = useState<string | null>(null);
-
-  // 用于控制布局方向
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
 
+
   const onClickChange = async () => {
+    setIsModalVisible(false);
     const nextLock = isLandscape
       ? ScreenOrientation.OrientationLock.PORTRAIT_UP
       : ScreenOrientation.OrientationLock.LANDSCAPE;
     await ScreenOrientation.lockAsync(nextLock);
+    setIsLandscape(!isLandscape);
   };
   const onClickRefresh = async () => {
+    setIsModalVisible(false);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
       Alert.alert('需要权限', '请在系统设置中允许访问相册。');
@@ -166,7 +185,6 @@ export default function TabOneScreen() {
     }
   };
 
-  // 启动定时器更新时间
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date());
@@ -174,34 +192,19 @@ export default function TabOneScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // 监听屏幕方向变化
+
+  const onLongPressScreen = () => {
+    if (!isModalVisible) {
+      setIsModalVisible(true);
+    }
+  };
+  const onCloseModal = () => {
+    setIsModalVisible(false);
+  };
+
   useEffect(() => {
-    const checkOrientation = async () => {
-      const orientation = await ScreenOrientation.getOrientationAsync();
-      const isLandscapeNow =
-        orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
-        orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
-      setIsLandscape(isLandscapeNow);
-    };
-
-    // 初始检查
-    checkOrientation();
-
-    // 订阅方向变化事件
-    const subscription = ScreenOrientation.addOrientationChangeListener(
-      ({ orientationInfo }) => {
-        const isLandscapeNow =
-          orientationInfo.orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
-          orientationInfo.orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
-        setIsLandscape(isLandscapeNow);
-      }
-    );
-
-    return () => {
-      subscription.remove();
-      // 恢复全局方向锁定（根据你的 app.json）
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    };
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    setIsLandscape(false);
   }, []);
 
   const hours = String(time.getHours()).padStart(2, '0');
@@ -210,15 +213,16 @@ export default function TabOneScreen() {
   const imageSource = imageUri ?? null;
 
   return (
-    <View style={styles.container}>
+    <Pressable style={styles.container} onLongPress={onLongPressScreen}>
       <StatusBar hidden />
       
       <View style={styles.houerContainer}>
-        {/* 动态设置 flexDirection */}
-        <View style={[
-          styles.houerRow,
-          isLandscape ? styles.houerRowLandscape : styles.houerRowPortrait,
-        ]}>
+        <View
+          style={[
+            styles.houerRow,
+            isLandscape ? styles.houerRowLandscape : styles.houerRowPortrait,
+          ]}
+        >
           <View style={styles.houer}>
             {hasImage ? (
               <ImageFillText text={hours} imageSource={imageSource as string} />
@@ -236,26 +240,19 @@ export default function TabOneScreen() {
             <MovingDashedBorder />
           </View>
         </View>
-        <View style={styles.buttonsRow}>
-          <Button
-            title="切换"
-            onPress={onClickChange}
-            buttonStyle={styles.buttonCircle}
-            containerStyle={styles.buttonCircleContainer}
-            titleStyle={styles.buttonText}
-            activeOpacity={0.6}
-          />
-          <Button
-            title="刷新"
-            onPress={onClickRefresh}
-            buttonStyle={[styles.buttonCircle, styles.buttonCircleAlt]}
-            containerStyle={styles.buttonCircleContainer}
-            titleStyle={styles.buttonText}
-            activeOpacity={0.6}
-          />
-        </View>
       </View>
-    </View>
+      <BottomSheet isVisible={isModalVisible} onBackdropPress={onCloseModal}>
+        <View style={styles.sheetCard}>
+          <Text style={styles.sheetTitle}>Options</Text>
+          <Pressable style={styles.sheetAction} onPress={onClickRefresh}>
+            <Text style={styles.sheetActionText}>Select Image</Text>
+          </Pressable>
+          <Pressable style={[styles.sheetAction, styles.sheetActionAlt]} onPress={onClickChange}>
+            <Text style={styles.sheetActionText}>切换方向</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
+    </Pressable>
   );
 }
 
@@ -269,7 +266,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000', // 可选：深色背景更沉浸
   },
   houerContainer: {
-    // 盒子布局方向在 houerRow 上动态设置
     display: 'flex',
     width: '60%',
     height: '60%',
@@ -285,6 +281,7 @@ const styles = StyleSheet.create({
   houerRowLandscape: {
     flexDirection: 'row',
   },
+
   houer: {
     flex: 1,
     // backgroundColor: 'red',
@@ -299,31 +296,40 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '900',
   },
-  buttonsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    marginTop: 20,
-    justifyContent: 'center',
+
+
+
+
+
+
+  sheetCard: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    backgroundColor: '#111',
+    borderTopWidth: 1,
+    borderColor: '#2a2a2a',
   },
-  buttonCircleContainer: {
-    marginHorizontal: 10,
+  sheetTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  buttonCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#fff',
+  sheetAction: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
     backgroundColor: '#1e2933',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  buttonCircleAlt: {
+  sheetActionAlt: {
     backgroundColor: '#233024',
   },
-  buttonText: {
+  sheetActionText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
