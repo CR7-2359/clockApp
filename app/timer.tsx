@@ -25,49 +25,11 @@ import { BottomSheet } from '@rneui/themed';
 
 // 虚线边框动画参数
 const BORDER_RADIUS = 10;
-const DASH_PATTERN = '8 6';
-const DASH_DURATION_MS = 900;
 const DIGIT_FONT_SIZE = 120;
 const IMAGE_ROTATION_DURATION_MS = 12000;
-const AnimatedRect = RNAnimated.createAnimatedComponent(Rect);
 const AnimatedPattern = Animated.createAnimatedComponent(Pattern);
 
 // 让虚线边框“滚动”的动画组件
-function MovingDashedBorder() {
-  const dashOffset = useRef(new RNAnimated.Value(0)).current;
-
-  useEffect(() => {
-    // 循环推进虚线偏移量，形成流动效果
-    const animation = RNAnimated.loop(
-      RNAnimated.timing(dashOffset, {
-        toValue: 14,
-        duration: DASH_DURATION_MS,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      })
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [dashOffset]);
-
-  return (
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <AnimatedRect
-        x="1"
-        y="1"
-        width="98%"
-        height="98%"
-        rx={BORDER_RADIUS}
-        ry={BORDER_RADIUS}
-        fill="none"
-        stroke="#fff"
-        strokeWidth={2}
-        strokeDasharray={DASH_PATTERN}
-        strokeDashoffset={dashOffset}
-      />
-    </Svg>
-  );
-}
 
 function ImageFillText({ text, imageSource }: { text: string; imageSource: string | number }) {
   const maskId = useId().replace(/:/g, '_');
@@ -159,6 +121,7 @@ export default function TabOneScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const framePulse = useRef(new RNAnimated.Value(0)).current;
 
 
   const onClickChange = async () => {
@@ -192,6 +155,25 @@ export default function TabOneScreen() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    framePulse.stopAnimation();
+    framePulse.setValue(0);
+    RNAnimated.sequence([
+      RNAnimated.timing(framePulse, {
+        toValue: 1,
+        duration: 140,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(framePulse, {
+        toValue: 0,
+        duration: 860,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [time, framePulse]);
+
 
   const onLongPressScreen = () => {
     if (!isModalVisible) {
@@ -207,6 +189,14 @@ export default function TabOneScreen() {
     setIsLandscape(false);
   }, []);
 
+  const frameGlowOpacity = framePulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.9],
+  });
+  const frameGlowScale = framePulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.06],
+  });
   const hours = String(time.getHours()).padStart(2, '0');
   const minutes = String(time.getMinutes()).padStart(2, '0');
   const hasImage = Boolean(imageUri);
@@ -217,6 +207,14 @@ export default function TabOneScreen() {
       <StatusBar hidden />
       
       <View style={styles.houerContainer}>
+        <View pointerEvents="none" style={styles.houerFrameBase} />
+        <RNAnimated.View
+          pointerEvents="none"
+          style={[
+            styles.houerFrameGlow,
+            { opacity: frameGlowOpacity, transform: [{ scale: frameGlowScale }] },
+          ]}
+        />
         <View
           style={[
             styles.houerRow,
@@ -229,7 +227,6 @@ export default function TabOneScreen() {
             ) : (
               <Text style={styles.houerText}>{hours}</Text>
             )}
-            <MovingDashedBorder />
           </View>
           <View style={styles.houer}>
             {hasImage ? (
@@ -237,7 +234,6 @@ export default function TabOneScreen() {
             ) : (
               <Text style={styles.houerText}>{minutes}</Text>
             )}
-            <MovingDashedBorder />
           </View>
         </View>
       </View>
@@ -270,10 +266,13 @@ const styles = StyleSheet.create({
     width: '60%',
     height: '60%',
     alignItems: 'stretch',
+    position: 'relative',
+    padding: 6,
   },
   houerRow: {
     flex: 1,
     width: '100%',
+    zIndex: 1,
   },
   houerRowPortrait: {
     flexDirection: 'column',
@@ -290,6 +289,26 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderRadius: BORDER_RADIUS,
     margin: 6,
+  },
+  houerFrameBase: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderColor: '#2b3842',
+    borderRadius: BORDER_RADIUS + 8,
+    zIndex: 0,
+  },
+  houerFrameGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderColor: '#6b8a9a',
+    borderRadius: BORDER_RADIUS + 10,
+    backgroundColor: 'transparent',
+    shadowColor: '#6fb2d1',
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+    zIndex: 0,
   },
   houerText: {
     fontSize: DIGIT_FONT_SIZE,
