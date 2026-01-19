@@ -60,13 +60,19 @@ export default function TabLayout() {
       >
         <Tab.Item
           title="首页"
-          titleStyle={[styles.tabTitle, { color: textColor }]}
+          titleStyle={(active) => [
+            styles.tabTitle,
+            { color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.6)' },
+          ]}
           TouchableComponent={TabTouchableOpacity}
           activeOpacity={1}
         />
         <Tab.Item
           title="我的"
-          titleStyle={[styles.tabTitle, { color: textColor }]}
+          titleStyle={(active) => [
+            styles.tabTitle,
+            { color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.6)' },
+          ]}
           TouchableComponent={TabTouchableOpacity}
           activeOpacity={1}
         />
@@ -80,6 +86,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
+    //tab的top边框一个像素高度的白色边框，模糊效果
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 5
   },
   tabIndicator: {
     backgroundColor: '#1e2933',

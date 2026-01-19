@@ -1,15 +1,17 @@
 import { View } from '@/components/Themed';
+import { Button } from '@rneui/themed';
+import * as ImagePicker from 'expo-image-picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text } from 'react-native';
-import { Button } from '@rneui/themed';
-import { Rect, Svg } from 'react-native-svg';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Alert, Animated, Easing, StyleSheet, Text, View as RNView } from 'react-native';
+import { Defs, Image as SvgImage, Mask, Rect, Svg, Text as SvgText } from 'react-native-svg';
 
 // 虚线边框动画参数
 const BORDER_RADIUS = 10;
 const DASH_PATTERN = '8 6';
 const DASH_DURATION_MS = 900;
+const DIGIT_FONT_SIZE = 120;
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 // 让虚线边框“滚动”的动画组件
@@ -49,8 +51,55 @@ function MovingDashedBorder() {
   );
 }
 
+function ImageFillText({ text, imageSource }: { text: string; imageSource: string | number }) {
+  const maskId = useId().replace(/:/g, '_');
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
+
+  return (
+    <RNView
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        if (width !== layout.width || height !== layout.height) {
+          setLayout({ width, height });
+        }
+      }}
+    >
+      {layout.width > 0 && layout.height > 0 && (
+        <Svg width={layout.width} height={layout.height}>
+          <Defs>
+            <Mask id={maskId}>
+              <Rect width={layout.width} height={layout.height} fill="#000" />
+              <SvgText
+                x={layout.width / 2}
+                y={layout.height / 2}
+                fontSize={DIGIT_FONT_SIZE}
+                fontWeight="900"
+                fill="#fff"
+                textAnchor="middle"
+                alignmentBaseline="middle"
+              >
+                {text}
+              </SvgText>
+            </Mask>
+          </Defs>
+          <SvgImage
+            href={imageSource}
+            width={layout.width}
+            height={layout.height}
+            preserveAspectRatio="xMidYMid slice"
+            mask={`url(#${maskId})`}
+          />
+        </Svg>
+      )}
+    </RNView>
+  );
+}
+
 export default function TabOneScreen() {
   const [time, setTime] = useState(new Date());
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   // 用于控制布局方向
   const [isLandscape, setIsLandscape] = useState(false);
@@ -61,8 +110,19 @@ export default function TabOneScreen() {
       : ScreenOrientation.OrientationLock.LANDSCAPE;
     await ScreenOrientation.lockAsync(nextLock);
   };
-  const onClickRefresh = () => {
-    setTime(new Date());
+  const onClickRefresh = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert('需要权限', '请在系统设置中允许访问相册。');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
   // 启动定时器更新时间
@@ -105,6 +165,8 @@ export default function TabOneScreen() {
 
   const hours = String(time.getHours()).padStart(2, '0');
   const minutes = String(time.getMinutes()).padStart(2, '0');
+  const hasImage = Boolean(imageUri);
+  const imageSource = imageUri ?? null;
 
   return (
     <View style={styles.container}>
@@ -117,11 +179,19 @@ export default function TabOneScreen() {
           isLandscape ? styles.houerRowLandscape : styles.houerRowPortrait,
         ]}>
           <View style={styles.houer}>
-            <Text style={styles.houerText}>{hours}</Text>
+            {hasImage ? (
+              <ImageFillText text={hours} imageSource={imageSource as string} />
+            ) : (
+              <Text style={styles.houerText}>{hours}</Text>
+            )}
             <MovingDashedBorder />
           </View>
           <View style={styles.houer}>
-            <Text style={styles.houerText}>{minutes}</Text>
+            {hasImage ? (
+              <ImageFillText text={minutes} imageSource={imageSource as string} />
+            ) : (
+              <Text style={styles.houerText}>{minutes}</Text>
+            )}
             <MovingDashedBorder />
           </View>
         </View>
@@ -150,6 +220,8 @@ export default function TabOneScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    margin:0,
+    padding:0,
     flex: 1, // ✅ 改为 flex: 1 更标准（占满全屏）、
     alignItems: 'center',
     justifyContent: 'center',
@@ -182,14 +254,14 @@ const styles = StyleSheet.create({
     margin: 6,
   },
   houerText: {
-    fontSize: 98,
+    fontSize: DIGIT_FONT_SIZE,
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '900',
   },
   buttonsRow: {
     flexDirection: 'row',
     width: '100%',
-    marginTop: 8,
+    marginTop: 20,
     justifyContent: 'center',
   },
   buttonCircleContainer: {
