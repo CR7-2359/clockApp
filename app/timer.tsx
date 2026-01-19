@@ -20,14 +20,16 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Defs, Image as SvgImage, Pattern, Rect, Svg, Text as SvgText } from 'react-native-svg';
-import type { PatternProps } from 'react-native-svg';
+import type { ImageProps } from 'react-native-svg';
 import { BottomSheet } from '@rneui/themed';
 
 // 虚线边框动画参数
 const BORDER_RADIUS = 10;
 const DIGIT_FONT_SIZE = 120;
 const IMAGE_ROTATION_DURATION_MS = 12000;
-const AnimatedPattern = Animated.createAnimatedComponent(Pattern);
+const IMAGE_BREATH_DURATION_MS = 8000;
+const IMAGE_BREATH_SCALE = 1.06;
+const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
 
 // 让虚线边框“滚动”的动画组件
 
@@ -35,6 +37,7 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
   const maskId = useId().replace(/:/g, '_');
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
   const { width, height } = layout;
 
   useEffect(() => {
@@ -44,29 +47,33 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
       -1,
       false
     );
-  }, [rotation]);
+    scale.value = 1;
+    scale.value = withRepeat(
+      withTiming(IMAGE_BREATH_SCALE, {
+        duration: IMAGE_BREATH_DURATION_MS,
+        easing: ReEasing.inOut(ReEasing.quad),
+      }),
+      -1,
+      true
+    );
+  }, [rotation, scale]);
 
-  const patternAnimatedProps = useAnimatedProps<PatternProps>(() => {
+  const imageAnimatedProps = useAnimatedProps<ImageProps>(() => {
     if (!width || !height) {
-      const matrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
-      return { patternTransform: matrix };
+      return {};
     }
-    const angle = (rotation.value * Math.PI) / 180;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
     const cx = width / 2;
     const cy = height / 2;
-    const translateX = cx - cx * cos + cy * sin;
-    const translateY = cy - cx * sin - cy * cos;
-    const matrix: [number, number, number, number, number, number] = [
-      cos,
-      sin,
-      -sin,
-      cos,
-      translateX,
-      translateY,
-    ];
-    return { patternTransform: matrix };
+    return {
+      transform: [
+        { translateX: cx },
+        { translateY: cy },
+        { rotate: `${rotation.value}deg` },
+        { scale: scale.value },
+        { translateX: -cx },
+        { translateY: -cy },
+      ],
+    };
   }, [width, height]);
 
   return (
@@ -83,21 +90,21 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
       {layout.width > 0 && layout.height > 0 && (
         <Svg width={layout.width} height={layout.height}>
           <Defs>
-            <AnimatedPattern
+            <Pattern
               id={maskId}
               patternUnits="userSpaceOnUse"
               width={layout.width}
               height={layout.height}
-              animatedProps={patternAnimatedProps}
             >
               <Rect width={layout.width} height={layout.height} fill="#000" />
-              <SvgImage
+              <AnimatedSvgImage
                 href={imageSource}
                 width={layout.width}
                 height={layout.height}
                 preserveAspectRatio="xMidYMid slice"
+                animatedProps={imageAnimatedProps}
               />
-            </AnimatedPattern>
+            </Pattern>
           </Defs>
           <SvgText
             x={layout.width / 2}
@@ -156,23 +163,25 @@ export default function TabOneScreen() {
   }, []);
 
   useEffect(() => {
-    framePulse.stopAnimation();
-    framePulse.setValue(0);
-    RNAnimated.sequence([
-      RNAnimated.timing(framePulse, {
-        toValue: 1,
-        duration: 140,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      RNAnimated.timing(framePulse, {
-        toValue: 0,
-        duration: 860,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [time, framePulse]);
+    const animation = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(framePulse, {
+          toValue: 1,
+          duration: 520,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        RNAnimated.timing(framePulse, {
+          toValue: 0,
+          duration: 520,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [framePulse]);
 
 
   const onLongPressScreen = () => {
