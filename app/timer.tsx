@@ -4,24 +4,33 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Alert, Animated, Easing, StyleSheet, Text, View as RNView } from 'react-native';
-import { Defs, Image as SvgImage, Mask, Rect, Svg, Text as SvgText } from 'react-native-svg';
+import { Alert, Animated as RNAnimated, Easing, StyleSheet, Text, View as RNView } from 'react-native';
+import Animated, {
+  Easing as ReEasing,
+  useAnimatedProps,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { Defs, Image as SvgImage, Pattern, Rect, Svg, Text as SvgText } from 'react-native-svg';
 
 // 虚线边框动画参数
 const BORDER_RADIUS = 10;
 const DASH_PATTERN = '8 6';
 const DASH_DURATION_MS = 900;
 const DIGIT_FONT_SIZE = 120;
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const IMAGE_ROTATION_DURATION_MS = 12000;
+const AnimatedRect = RNAnimated.createAnimatedComponent(Rect);
+const AnimatedPattern = Animated.createAnimatedComponent(Pattern);
 
 // 让虚线边框“滚动”的动画组件
 function MovingDashedBorder() {
-  const dashOffset = useRef(new Animated.Value(0)).current;
+  const dashOffset = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
     // 循环推进虚线偏移量，形成流动效果
-    const animation = Animated.loop(
-      Animated.timing(dashOffset, {
+    const animation = RNAnimated.loop(
+      RNAnimated.timing(dashOffset, {
         toValue: 14,
         duration: DASH_DURATION_MS,
         easing: Easing.linear,
@@ -54,6 +63,33 @@ function MovingDashedBorder() {
 function ImageFillText({ text, imageSource }: { text: string; imageSource: string | number }) {
   const maskId = useId().replace(/:/g, '_');
   const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const rotation = useSharedValue(0);
+  const { width, height } = layout;
+
+  useEffect(() => {
+    rotation.value = 0;
+    rotation.value = withRepeat(
+      withTiming(360, { duration: IMAGE_ROTATION_DURATION_MS, easing: ReEasing.linear }),
+      -1,
+      false
+    );
+  }, [rotation]);
+
+  const patternAnimatedProps = useAnimatedProps(() => {
+    if (!width || !height) {
+      return { patternTransform: [1, 0, 0, 1, 0, 0] };
+    }
+    const angle = (rotation.value * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const cx = width / 2;
+    const cy = height / 2;
+    const translateX = cx - cx * cos + cy * sin;
+    const translateY = cy - cx * sin - cy * cos;
+    return {
+      patternTransform: [cos, sin, -sin, cos, translateX, translateY],
+    };
+  }, [width, height]);
 
   return (
     <RNView
@@ -69,28 +105,33 @@ function ImageFillText({ text, imageSource }: { text: string; imageSource: strin
       {layout.width > 0 && layout.height > 0 && (
         <Svg width={layout.width} height={layout.height}>
           <Defs>
-            <Mask id={maskId}>
+            <AnimatedPattern
+              id={maskId}
+              patternUnits="userSpaceOnUse"
+              width={layout.width}
+              height={layout.height}
+              animatedProps={patternAnimatedProps}
+            >
               <Rect width={layout.width} height={layout.height} fill="#000" />
-              <SvgText
-                x={layout.width / 2}
-                y={layout.height / 2}
-                fontSize={DIGIT_FONT_SIZE}
-                fontWeight="900"
-                fill="#fff"
-                textAnchor="middle"
-                alignmentBaseline="middle"
-              >
-                {text}
-              </SvgText>
-            </Mask>
+              <SvgImage
+                href={imageSource}
+                width={layout.width}
+                height={layout.height}
+                preserveAspectRatio="xMidYMid slice"
+              />
+            </AnimatedPattern>
           </Defs>
-          <SvgImage
-            href={imageSource}
-            width={layout.width}
-            height={layout.height}
-            preserveAspectRatio="xMidYMid slice"
-            mask={`url(#${maskId})`}
-          />
+          <SvgText
+            x={layout.width / 2}
+            y={layout.height / 2}
+            fontSize={DIGIT_FONT_SIZE}
+            fontWeight="900"
+            fill={`url(#${maskId})`}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+          >
+            {text}
+          </SvgText>
         </Svg>
       )}
     </RNView>
@@ -117,7 +158,7 @@ export default function TabOneScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 1,
     });
     if (!result.canceled && result.assets.length > 0) {
