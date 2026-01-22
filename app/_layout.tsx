@@ -4,7 +4,9 @@ import { createTheme, ThemeProvider } from '@rneui/themed';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect, useMemo } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import Colors from '@/constants/Colors';
@@ -72,6 +74,16 @@ function RootLayoutNav() {
       }),
     []
   );
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+    NavigationBar.setPositionAsync('absolute');
+    NavigationBar.setBackgroundColorAsync('transparent');
+    NavigationBar.setVisibilityAsync('hidden');
+    NavigationBar.setBehaviorAsync('inset-swipe');
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
